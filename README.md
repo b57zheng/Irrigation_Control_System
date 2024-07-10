@@ -16,7 +16,7 @@ This project is an embedded control system designed for managing irrigation effe
 - **Recommended IDE**: STM32Cube 1.13.2
 
 ## Schematic
-![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/24994c8a-a150-4b6d-b4e1-2d8ca9d042a2)
+![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/27f361c9-77d5-42d0-baa7-69a5a71ab404)
 
 ## PCB Layout
 ![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/0d413e1d-5e44-4656-b292-ce61a25b20dd)
