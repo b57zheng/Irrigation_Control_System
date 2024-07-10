@@ -11,7 +11,7 @@ This project is an embedded control system designed for managing irrigation effe
 - **User Interface**: Input and indicator interfaces for real-time control and monitoring through UART protocol
 
 ## System Schematic
-![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/27f361c9-77d5-42d0-baa7-69a5a71ab404)
+![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/716ed24c-8964-42d3-9bc7-f9799ea17960)
 
 ## PCB Layout
 ![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/0d413e1d-5e44-4656-b292-ce61a25b20dd)
