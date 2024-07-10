@@ -1,7 +1,7 @@
 # Irrigation Embedded Control System
 
 ## Description
-This project is an advanced embedded control system designed for managing irrigation effectively. Utilizing a Nucleo F401RE board, this system integrates various sensors and actuators through a custom-designed PCB, enabling automated water distribution based on real-time environmental data.
+This project is an embedded control system designed for managing irrigation effectively. Utilizing a Nucleo F401RE board, this system integrates various sensors and actuators through a custom-designed PCB, enabling automated water distribution based on real-time environmental data.
 
 ## System Overview
 - **MCU Controller**: Nucleo F401RE Development Board
@@ -18,6 +18,10 @@ This project is an advanced embedded control system designed for managing irriga
 ## Schematic
 ![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/24994c8a-a150-4b6d-b4e1-2d8ca9d042a2)
 
+## PCB Layout
+![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/0d413e1d-5e44-4656-b292-ce61a25b20dd)
+![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/c79fdecf-29c5-4000-bb45-4394bec07f31)
+![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/f74db943-f429-45e2-9c53-7241a2b4181b)
 
 ## Installation
 1. Assemble the hardware on the custom PCB following the schematic provided.
