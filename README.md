@@ -10,12 +10,6 @@ This project is an embedded control system designed for managing irrigation effe
 - **Buffers**: Includes CD74HCT541 and CD74HC4050 for logic level translation
 - **User Interface**: Input and indicator interfaces for real-time control and monitoring through UART protocol
 
-## Hardware and Software Requirements
-- **Nucleo F401RE Board**
-- **Custom PCB**
-- **Sensors and Actuators as specified in the design**
-- **Recommended IDE**: STM32Cube 1.13.2
-
 ## Schematic
 ![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/27f361c9-77d5-42d0-baa7-69a5a71ab404)
 
@@ -23,6 +17,12 @@ This project is an embedded control system designed for managing irrigation effe
 ![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/0d413e1d-5e44-4656-b292-ce61a25b20dd)
 ![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/c79fdecf-29c5-4000-bb45-4394bec07f31)
 ![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/f74db943-f429-45e2-9c53-7241a2b4181b)
+
+## Hardware and Software Requirements
+- **Nucleo F401RE Board**
+- **Custom PCB**
+- **Sensors and Actuators as specified in the design**
+- **Recommended IDE**: STM32Cube 1.13.2
 
 ## Installation
 1. Assemble the hardware on the custom PCB following the schematic provided.
