@@ -10,7 +10,7 @@ This project is an embedded control system designed for managing irrigation effe
 - **Buffers**: Includes CD74HCT541 and CD74HC4050 for logic level translation
 - **User Interface**: Input and indicator interfaces for real-time control and monitoring through UART protocol
 
-## Schematic
+## System Schematic
 ![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/27f361c9-77d5-42d0-baa7-69a5a71ab404)
 
 ## PCB Layout
