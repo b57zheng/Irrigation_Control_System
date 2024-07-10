@@ -6,14 +6,17 @@ This project is an advanced embedded control system designed for managing irriga
 ## System Overview
 - **MCU Controller**: Nucleo F401RE Development Board
 - **Sensors**: Interfaces for US100 water depth sensor and other environmental parameters
-- **Actuators**: Includes PWM L9110 motor speed control for pumps and servo motor for valves
+- **PMW Motor Control**: Includes L9110 motor speed control for pumps and MG90S servo motor control for valves
 - **User Interface**: Input and indicator interfaces for real-time control and monitoring
 
 ## Hardware and Software Requirements
 - **Nucleo F401RE Board**
 - **Custom PCB**
 - **Sensors and Actuators as specified in the design**
-- **Required Software**: ARM mbed, ST-Link drivers
+- **Recommended IDE**: STM32Cube 1.13.2
+
+## Schematic
+[ECE298_RS_Adapter (1).PDF](https://github.com/user-attachments/files/16169408/ECE298_RS_Adapter.1.PDF)
 
 ## Installation
 1. Assemble the hardware on the custom PCB following the schematic provided.
