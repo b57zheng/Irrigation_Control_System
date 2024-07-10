@@ -38,7 +38,7 @@ This project is an embedded control system designed for managing irrigation effe
 - The system operates automatically based on the preset schedules, adjusting the water distribution according to the sensor inputs.
 
 ## Contributing
-Contributors are welcome to propose improvements to the system. Please fork the repository and submit a pull request with your proposed changes.
+Contributors are welcome to propose improvements to the system.
 
 ## Acknowledgments
 - Thanks to the University of Waterloo for supporting this project.
