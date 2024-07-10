@@ -39,6 +39,3 @@ This project is an embedded control system designed for managing irrigation effe
 
 ## Contributing
 Contributors are welcome to propose improvements to the system.
-
-## Acknowledgments
-- Thanks to the University of Waterloo for supporting this project.
