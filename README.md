@@ -7,6 +7,7 @@ This project is an embedded control system designed for managing irrigation effe
 - **MCU Controller**: Nucleo F401RE Development Board
 - **Sensors**: Interfaces for US100 water depth sensor and other environmental parameters
 - **PMW Motor Control**: Includes L9110 motor speed control for pumps and MG90S servo motor control for valves
+- **Buffers**: Includes CD74HCT541 and CD74HC4050 for logic level translation
 - **User Interface**: Input and indicator interfaces for real-time control and monitoring through UART protocol
 
 ## Hardware and Software Requirements
