@@ -16,7 +16,8 @@ This project is an advanced embedded control system designed for managing irriga
 - **Recommended IDE**: STM32Cube 1.13.2
 
 ## Schematic
-[ECE298_RS_Adapter (1).PDF](https://github.com/user-attachments/files/16169408/ECE298_RS_Adapter.1.PDF)
+![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/24994c8a-a150-4b6d-b4e1-2d8ca9d042a2)
+
 
 ## Installation
 1. Assemble the hardware on the custom PCB following the schematic provided.
