@@ -14,7 +14,7 @@ This project is an embedded control system designed for managing irrigation effe
 ![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/716ed24c-8964-42d3-9bc7-f9799ea17960)
 
 ## PCB Layout
-![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/0d413e1d-5e44-4656-b292-ce61a25b20dd)
+![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/4ec3f893-8ab0-410b-a109-c003f8dbbc2a)
 ![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/c79fdecf-29c5-4000-bb45-4394bec07f31)
 ![image](https://github.com/b57zheng/Irrigation_Embedded_System/assets/98293562/f74db943-f429-45e2-9c53-7241a2b4181b)
 
