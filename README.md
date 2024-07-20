@@ -11,12 +11,12 @@ This project is an embedded control system designed for managing irrigation effe
 - **User Interface**: Input and indicator interfaces for real-time control and monitoring through UART protocol
 
 ## System Schematic
-![image](https://github.com/user-attachments/assets/1b616fff-d22a-4726-9e12-a1deffbf70ab)
+![image](https://github.com/user-attachments/assets/dfa046f1-5351-4391-9092-67e7d8ffe928)
 
 ## PCB Layout
-![image](https://github.com/user-attachments/assets/974e484e-5132-46c6-b568-1ab629f464a5)
-![image](https://github.com/user-attachments/assets/70efa69a-b359-47cb-956d-dc25584625b4)
-![image](https://github.com/user-attachments/assets/f84d32f4-228c-4d2c-948e-d154d83c699a)
+![image](https://github.com/user-attachments/assets/dacd0ad2-1761-43de-af83-436419a8a50b)
+![image](https://github.com/user-attachments/assets/81c88571-37a5-4faa-9b7a-dd215fc7915e)
+![image](https://github.com/user-attachments/assets/d0f0cd28-81f3-4cd9-a8f2-670d1d68d10d)
 
 ## Hardware and Software Requirements
 - **Nucleo F401RE Board**
