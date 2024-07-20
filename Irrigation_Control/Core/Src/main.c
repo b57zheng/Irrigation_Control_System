@@ -3,7 +3,7 @@
   ******************************************************************************
   * @file           : main.c
   * @brief          : Main program body
-  * Author          : Bowen Zheng, Jingyan Xu
+  * Author          : Bowen Zheng
   ******************************************************************************
   * @attention
   *
@@ -29,7 +29,20 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef enum {
+    LED_OFF,
+    LED_RED,
+    LED_GREEN,
+    LED_BLUE,
+    LED_PURPLE
+} LED_Color;
 
+typedef enum {
+    INLET,
+    ZONE_1,
+    ZONE_2,
+    ZONE_3
+} Zone;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -58,26 +71,33 @@ volatile uint8_t Zone_3_CLK_STOP = 00;
 
  /* -------- RUN MODE VAR -------- */
 volatile uint8_t RUN_MODE_START_FLAG = 0;
+volatile Zone Current_Zone;
+const char* Zone_Names[] = {"INLET", "ZONE 1", "ZONE 2", "ZONE 3"};
+volatile uint8_t System_Interlock_Flag = 0;
+
  /* -- DC Motor -- */
 volatile uint64_t rpm_tick_count = 0;
 volatile uint64_t last_rpm_tick_count = 0;
 volatile uint32_t DC_Motor_RPM = 0;
+volatile uint8_t Current_DC_Motor_Percent_PWM = 0;
 
  /* -- Wall Clock -- */
 volatile uint64_t simulate_seconds = 0;
 volatile uint8_t Current_Wall_CLK_Hour = 00;
 
-
-// US100-Trigger, command byte  = 0x55;
-uint8_t cmd_dist = 0x55;
+ /* -- US100 Distance Sensor -- */
+const uint8_t cmd_dist = 0x55; // US100-Trigger, command byte  = 0x55;
 volatile uint8_t us100_Rx_flag = 0;
-/* Two bytes to store distance detected from US100 */
+volatile uint16_t distance_mm = 0;
 uint8_t us100_buffer[2] = {0};
 uint8_t msg_buffer[64] = {0};
-volatile uint16_t distance = 0;
+volatile uint8_t Current_Water_Percent_depth = 0;
+const volatile uint16_t Tank_Level_Lo = 1000;
+const volatile uint16_t Tank_Level_Hi = 100;
+volatile uint8_t Tank_Level_Lo_Alarm = 0;
+volatile uint8_t Tank_Level_Hi_Alarm = 0;
 
- /* -- ADC -- */
-volatile uint8_t ADC_Control_Percent = 0;
+
 
 /* USER CODE END PD */
 
@@ -122,8 +142,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void Control_DC_Motor_PWM(uint8_t percent, uint8_t direction); // 0 - reverse; 1 - forward
 void Control_Servo_Motor_PWM(uint8_t direction); // 0 - INLET; 1 - OUTLET_1; 2 - OUTLET_2; 3 - OUTLET_3
 void Update_Wall_CLK_Display(volatile uint64_t simulate_seconds);
-uint8_t ADC_Manual_Control_PWM(ADC_HandleTypeDef *hadc, uint8_t adc_channel);
-
+uint8_t ADC_Manual_Control_Percent_PWM();
+void Get_Water_Percent_depth();
+void Set_LED_Color(LED_Color color);
+void System_Interlock();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -210,46 +232,162 @@ int main(void)
     /* ------------------ SET UP MODE END ------------------ */
 
     /* ------------------ RUN MODE ------------------ */
+	// Turn ON controller green LED
+	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+	UART_Send_MSG("\r\n\n RUN MODE");
+	UART_Send_MSG("\r\n");
+
   // start up TIMER 5 for one second interrupts
+	// start up TIMER 3 for DC motor control
+	// start up TIMER 2 for Servo motor control
   HAL_TIM_Base_Start_IT(&htim5);
-  // start up TIMER 3 for DC motor control and TIMER 2 for Servo motor control
   HAL_TIM_Base_Init(&htim3);
 	HAL_TIM_Base_Start(&htim2);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
   HAL_TIM_Base_Init(&htim3);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-
-	// Turn ON controller green LED
-	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-	UART_Send_MSG("\r\n\n RUN MODE");
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-  	/*
-  	Control_DC_Motor_PWM(99, 0);
-  	char buf[64];
-  	sprintf(buf, "Motor RPM: %lu\r\n", DC_Motor_RPM);
-  	HAL_UART_Transmit(&huart6, (uint8_t*)buf, strlen(buf), 1000);
-		*/
-  	/* US100
-  	HAL_UART_Receive_IT(&huart1, us100_buffer, 2);
-		HAL_UART_Transmit(&huart1, &cmd_dist, 1, 500);
-		while( us100_Rx_flag == (00) ) {};
-		// Combine the two bytes into a single 16-bit integer
-		distance = ((uint16_t)us100_buffer[0] << 8) | us100_buffer[1];
-		sprintf( (char*)msg_buffer, "Distance in mm: %d \r\n", distance );
-    HAL_UART_Transmit(&huart6, msg_buffer, strlen((char*)msg_buffer), 1000);
-		*/
-  	uint8_t adc_percent = ADC_Manual_Control_PWM(&hadc1, 9);
-  	char buf[64];
-  	sprintf(buf, "ADC: %u\r\n", adc_percent);
-  	HAL_UART_Transmit(&huart6, (uint8_t*)buf, strlen(buf), 1000);
+  	/* -- INLET -- */
+  	Tank_Level_Lo_Alarm = 0;
+  	Tank_Level_Hi_Alarm = 0;
+  	while ( (Current_Wall_CLK_Hour >= INLET_CLK_START && Current_Wall_CLK_Hour <= INLET_CLK_STOP) || Tank_Level_Hi_Alarm == 0 ) {
+  		Current_Zone = INLET;
+  		Set_LED_Color(LED_PURPLE);
+  		Control_Servo_Motor_PWM(0);
+  		Get_Water_Percent_depth();
 
-  	  /* ------------------ RUN MODE END ------------------ */
+  		// Tank Full
+  		if (Tank_Level_Hi_Alarm == 1) {
+  			//Turn off Motor
+  			Control_DC_Motor_PWM(0, 0);
+  			//Wait until the current sequence finish
+  			while (Current_Wall_CLK_Hour >= INLET_CLK_START && Current_Wall_CLK_Hour <= INLET_CLK_STOP ) {
+  				Current_DC_Motor_Percent_PWM = 0;
+  			}
+  			break;
+  		}
+
+  		if (INLET_PWM == 0) {
+  			Current_DC_Motor_Percent_PWM = ADC_Manual_Control_Percent_PWM();
+  			Control_DC_Motor_PWM( ADC_Manual_Control_Percent_PWM() , 0);
+  		} else if (INLET_PWM == 1) {
+  			Current_DC_Motor_Percent_PWM = 60;
+  			Control_DC_Motor_PWM( 60 , 0);
+  		} else if (INLET_PWM == 2) {
+  			Current_DC_Motor_Percent_PWM = 80;
+  			Control_DC_Motor_PWM( 80 , 0);
+  		} else if (INLET_PWM == 3) {
+  			Current_DC_Motor_Percent_PWM = 99;
+  			Control_DC_Motor_PWM( 99 , 0);
+  		}
+  	}
+
+  	// Turn off motor between Switching sequence
+  	Control_DC_Motor_PWM(0, 0);
+  	HAL_Delay(1000);
+
+  	/* -- ZONE 1 -- */
+  	Tank_Level_Lo_Alarm = 0;
+  	Tank_Level_Hi_Alarm = 0;
+  	while (Current_Wall_CLK_Hour >= Zone_1_CLK_START && Current_Wall_CLK_Hour <= Zone_1_CLK_STOP) {
+  		Current_Zone = ZONE_1;
+  		Set_LED_Color(LED_RED);
+  		Control_Servo_Motor_PWM(1);
+  		Get_Water_Percent_depth();
+
+  		//RESERVOIR IS EMPTY
+  		if (Tank_Level_Lo_Alarm == 1) {
+  			System_Interlock();
+  		}
+
+  		if (Zone_1_PWM == 0) {
+  			Current_DC_Motor_Percent_PWM = ADC_Manual_Control_Percent_PWM();
+  			Control_DC_Motor_PWM( ADC_Manual_Control_Percent_PWM() , 1);
+  		} else if (Zone_1_PWM == 1) {
+  			Current_DC_Motor_Percent_PWM = 60;
+  			Control_DC_Motor_PWM(60 , 1);
+  		} else if (Zone_1_PWM == 2) {
+  			Current_DC_Motor_Percent_PWM = 80;
+  			Control_DC_Motor_PWM(80 , 1);
+  		} else if (Zone_1_PWM == 3) {
+  			Current_DC_Motor_Percent_PWM = 99;
+  			Control_DC_Motor_PWM(99 , 1);
+  		}
+  	}
+
+  	// Turn off motor between Switching sequence
+  	Control_DC_Motor_PWM(0, 0);
+  	HAL_Delay(1000);
+
+  	/* -- ZONE 2 -- */
+  	Tank_Level_Lo_Alarm = 0;
+  	Tank_Level_Hi_Alarm = 0;
+  	while (Current_Wall_CLK_Hour >= Zone_2_CLK_START && Current_Wall_CLK_Hour <= Zone_2_CLK_STOP) {
+  		Current_Zone = ZONE_2;
+  		Set_LED_Color(LED_GREEN);
+  		Control_Servo_Motor_PWM(2);
+  		Get_Water_Percent_depth();
+
+  		//RESERVOIR IS EMPTY
+  		if (Tank_Level_Lo_Alarm == 1) {
+  			System_Interlock();
+  		}
+
+  		if (Zone_2_PWM == 0) {
+  			Current_DC_Motor_Percent_PWM = ADC_Manual_Control_Percent_PWM();
+  			Control_DC_Motor_PWM( ADC_Manual_Control_Percent_PWM() , 1);
+  		} else if (Zone_2_PWM == 1) {
+  			Current_DC_Motor_Percent_PWM = 60;
+  			Control_DC_Motor_PWM(60 , 1);
+  		} else if (Zone_2_PWM == 2) {
+  			Current_DC_Motor_Percent_PWM = 80;
+  			Control_DC_Motor_PWM(80 , 1);
+  		} else if (Zone_2_PWM == 3) {
+  			Current_DC_Motor_Percent_PWM = 99;
+  			Control_DC_Motor_PWM(99 , 1);
+  		}
+  	}
+
+  	// Turn off motor between Switching sequence
+  	Control_DC_Motor_PWM(0, 0);
+  	HAL_Delay(1000);
+
+  	/* -- ZONE 3 -- */
+  	Tank_Level_Lo_Alarm = 0;
+  	Tank_Level_Hi_Alarm = 0;
+  	while (Current_Wall_CLK_Hour >= Zone_3_CLK_START && Current_Wall_CLK_Hour <= Zone_3_CLK_STOP) {
+  		Current_Zone = ZONE_3;
+  		Set_LED_Color(LED_BLUE);
+  		Control_Servo_Motor_PWM(3);
+  		Get_Water_Percent_depth();
+
+  		//RESERVOIR IS EMPTY
+  		if (Tank_Level_Lo_Alarm == 1) {
+  			System_Interlock();
+  		}
+
+  		if (Zone_3_PWM == 0) {
+  			Current_DC_Motor_Percent_PWM = ADC_Manual_Control_Percent_PWM();
+  			Control_DC_Motor_PWM( ADC_Manual_Control_Percent_PWM() , 1);
+  		} else if (Zone_3_PWM == 1) {
+  			Current_DC_Motor_Percent_PWM = 60;
+  			Control_DC_Motor_PWM(60 , 1);
+  		} else if (Zone_3_PWM == 2) {
+  			Current_DC_Motor_Percent_PWM = 80;
+  			Control_DC_Motor_PWM(80 , 1);
+  		} else if (Zone_3_PWM == 3) {
+  			Current_DC_Motor_Percent_PWM = 99;
+  			Control_DC_Motor_PWM(99 , 1);
+  		}
+  	}
+
+  	  /* ------------------ RUN MODE REPEAT ------------------ */
 
     /* USER CODE END WHILE */
 
@@ -396,7 +534,7 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 500-1;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -940,7 +1078,7 @@ void UART_Parse_MSG(char *option_msg, char *msg, volatile uint8_t *Zone, unsigne
 
 void UART_Send_MSG(char* msg)
 {
-	uint8_t msg_buffer[64] = {0};
+	uint8_t msg_buffer[128] = {0};
 	sprintf((char*)msg_buffer, "%s", msg);
 	HAL_UART_Transmit(&huart6, msg_buffer, strlen((char*)msg_buffer), 1000);
 }
@@ -972,26 +1110,31 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim->Instance == TIM5) {
+		// MOTRO RPM calculation
+		uint32_t ticks = rpm_tick_count - last_rpm_tick_count;
+		if (ticks > 0) {
+				DC_Motor_RPM = (ticks * 60) / 20;  // Calculate RPM based on ticks
+		} else {
+				DC_Motor_RPM = 0;  // Set RPM to zero if no ticks are detected
+		}
+		last_rpm_tick_count = rpm_tick_count;  // Update last count
+
 		// Update wall clock second every real second
 		simulate_seconds += 600;  // Simulating 24 hour minutes per 2.4 min
 		Update_Wall_CLK_Display(simulate_seconds);
 	}
 
-	// MOTRO RPM calculation
-	uint32_t ticks = rpm_tick_count - last_rpm_tick_count;
-	if (ticks > 0) {
-			DC_Motor_RPM = (ticks * 60) / 20;  // Calculate RPM based on ticks
-	} else {
-			DC_Motor_RPM = 0;  // Set RPM to zero if no ticks are detected
-	}
-	last_rpm_tick_count = rpm_tick_count;  // Update last count
-
 }
 
 void Control_DC_Motor_PWM(uint8_t percent, uint8_t direction)
 {
-	uint32_t pwm_value = (2000 * percent) / 100;  // Calculate the PWM value based on the percentage
+  if (percent == 0) {
+		TIM3->CCR1 = 0;
+		TIM3->CCR3 = 0;
+		return;
+  }
 
+	uint32_t pwm_value = (2000 * percent) / 100;  // Calculate the PWM value based on the percentage
 	// Set motor direction 0 - reverse, 1 - forward
 	if (direction == 1) {
 		// Forward direction
@@ -1004,7 +1147,8 @@ void Control_DC_Motor_PWM(uint8_t percent, uint8_t direction)
 	}
 }
 
-void Control_Servo_Motor_PWM(uint8_t direction) {
+void Control_Servo_Motor_PWM(uint8_t direction)
+{
 	// Set motor direction 0 - INLET
 	if (direction == 0) {
 		TIM2->CCR1 = 2500;
@@ -1019,6 +1163,7 @@ void Control_Servo_Motor_PWM(uint8_t direction) {
 
 void Update_Wall_CLK_Display(volatile uint64_t simulated_seconds)
 {
+		static uint8_t last_hour_displayed = 255;
 		if (simulate_seconds >= 3600) {
 			simulate_seconds -= 3600;
 			Current_Wall_CLK_Hour++;
@@ -1028,15 +1173,26 @@ void Update_Wall_CLK_Display(volatile uint64_t simulated_seconds)
 		}
 		uint8_t scaled_hour = (WALL_CLK_START + Current_Wall_CLK_Hour) % 24;
 
+    if ( (last_hour_displayed != scaled_hour) && System_Interlock_Flag == 0 ) {
+			last_hour_displayed = scaled_hour;
+			char buf[256];
+			// Format and send the message every hour
+			sprintf(buf, "Wall-Clock Time: %02d | Zone/Inlet: %s | Motor Speed %%PWM: %d%% | Motor RPM: %lu | Water Reservoir Depth: %d%%\r\n",
+							Current_Wall_CLK_Hour, Zone_Names[Current_Zone], Current_DC_Motor_Percent_PWM, DC_Motor_RPM, Current_Water_Percent_depth);
+
+			HAL_UART_Transmit(&huart6, (uint8_t*)buf, strlen(buf), 1000);
+    }
+
     uint8_t digit_a = scaled_hour / 10; // Tens digit of the hour
     uint8_t digit_b = scaled_hour % 10; // Units digit of the hour
 
     DIGITS_Display(digit_a, digit_b); // Display the scaled hour
 }
 
-uint8_t ADC_Manual_Control_PWM(ADC_HandleTypeDef *hadc, uint8_t adc_channel) {
+uint8_t ADC_Manual_Control_Percent_PWM()
+{
   uint8_t adc_value = 0; // 0 - 255
-	ADC_Select_CH(adc_channel);
+	ADC_Select_CH(9);
 	HAL_ADC_Start(&hadc1);
 	HAL_ADC_PollForConversion(&hadc1, 1000);
 	adc_value = HAL_ADC_GetValue(&hadc1);
@@ -1046,6 +1202,84 @@ uint8_t ADC_Manual_Control_PWM(ADC_HandleTypeDef *hadc, uint8_t adc_channel) {
 	uint8_t percentage = (uint8_t)((adc_value * 100) / 255);
 
   return percentage;
+}
+
+void Get_Water_Percent_depth()
+{
+	HAL_UART_Receive_IT(&huart1, us100_buffer, 2);
+	HAL_UART_Transmit(&huart1, &cmd_dist, 1, 500);
+	HAL_Delay(0.005);
+	while( us100_Rx_flag == (00) ) {};
+	// Combine the two bytes into a single 16-bit integer
+	distance_mm = ((uint16_t)us100_buffer[0] << 8) | us100_buffer[1];
+  uint8_t calculated_depth = 0;
+
+	if( distance_mm >= Tank_Level_Lo ) {
+		calculated_depth = 0;
+		Tank_Level_Lo_Alarm = 1;
+	} else if( distance_mm <= Tank_Level_Hi ) {
+		calculated_depth = 99;
+		Tank_Level_Hi_Alarm = 1;
+	} else {
+		calculated_depth = (uint8_t) (100 - ((distance_mm - Tank_Level_Hi) * 100 / (Tank_Level_Lo - Tank_Level_Hi)));
+	}
+
+  Current_Water_Percent_depth = calculated_depth;
+  HAL_Delay(50);
+}
+
+void Set_LED_Color(LED_Color color)
+{
+	switch (color) {
+		case LED_RED:
+			HAL_GPIO_WritePin(GPIOA, RED_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(GPIOA, GRN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(GPIOA, BLU_Pin, GPIO_PIN_RESET);
+			break;
+
+		case LED_GREEN:
+			HAL_GPIO_WritePin(GPIOA, RED_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(GPIOA, GRN_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(GPIOA, BLU_Pin, GPIO_PIN_RESET);
+			break;
+
+		case LED_BLUE:
+			HAL_GPIO_WritePin(GPIOA, RED_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(GPIOA, GRN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(GPIOA, BLU_Pin, GPIO_PIN_SET);
+			break;
+
+		case LED_PURPLE:
+			HAL_GPIO_WritePin(GPIOA, RED_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(GPIOA, GRN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(GPIOA, BLU_Pin, GPIO_PIN_SET);
+			break;
+
+		case LED_OFF:
+		default:
+			HAL_GPIO_WritePin(GPIOA, RED_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(GPIOA, GRN_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(GPIOA, BLU_Pin, GPIO_PIN_RESET);
+			break;
+	}
+}
+
+void System_Interlock()
+{
+	System_Interlock_Flag = 1;
+	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+	UART_Send_MSG("\r\n\n RESERVOIR IS EMPTY");
+
+	while (1) {
+		// Turn off DC Motor
+		Control_DC_Motor_PWM(0, 0);
+		Set_LED_Color(LED_RED);
+		HAL_Delay(500);
+		Set_LED_Color(LED_GREEN);
+		HAL_Delay(500);
+		Set_LED_Color(LED_BLUE);
+		HAL_Delay(500);
+	}
 }
 /* USER CODE END 4 */
 
